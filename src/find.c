@@ -1,9 +1,6 @@
-#include "lib/find.h"
-#include <stdlib.h>
+#include "inc/main.h"
 
-int gut(const char *file);
-
-int	isAFile(const char *path)
+static int	isAFile(const char *path)
 {
 	struct stat dir;
 
@@ -11,49 +8,51 @@ int	isAFile(const char *path)
 	return (S_ISREG(dir.st_mode));
 }
 
-int isASymlink(const char *path)
+static int  isASymlink(const char *path)
 {
 	struct stat dir;
-    lstat (path, &dir);
-    return (S_ISLNK(dir.st_mode));
+
+  lstat (path, &dir);
+  return (S_ISLNK(dir.st_mode));
 }
 
-int	isADir(const char *path)
+static int	isADir(const char *path)
 {
 	struct stat dir;
+
 	stat(path, &dir);
 	return (S_ISDIR(dir.st_mode));
 }
 
-void	find_file(char *paths)
+void	find_file(char *old_path)
 {
+	struct dirent *file = NULL;
+	char new_path[4096];
 	char *UnallowDir[] = {"//dev", "//proc"};
-	for (int i = 0; i < 2; i++)
-		if (strcmp(paths, UnallowDir[i]) == 0)
-			return;
-	struct dirent *dir = NULL;
-	char filepath[512];
-	DIR *path = opendir(paths);
-	if (path)
+
+  for (int i = 0; i < 2; i++)
+  {
+    if (strcmp(old_path, UnallowDir[i]) == 0)
+		  return;
+  }
+
+  DIR *dir = opendir(old_path);
+	if (dir)
 	{
-		while ((dir = readdir(path)) != NULL)
+		while ((file = readdir(dir)) != NULL)
 		{
-			if (strcmp(dir->d_name, ".") == 0 || strcmp(dir->d_name, "..") == 0)
+			if (strcmp(file->d_name, ".") == 0 || strcmp(file->d_name, "..") == 0)
 				continue;
-			snprintf(filepath, sizeof(filepath), "%s/%s", paths, dir->d_name);
-			if (isADir(filepath) == 1 && isAFile(filepath) == 0 && isASymlink(filepath) == 0)
+      if (strlen(old_path) != 1) // Condition to avoid to get "//" as a path
+        sprintf(new_path, "%s/%s", old_path, file->d_name); // Create the new path
+			if (isADir(new_path) == 1&& isASymlink(new_path) == 0)
+				find_file(new_path);
+			else if (isAFile(new_path) == 1 && isASymlink(new_path) == 0)
 			{
-				if ((strcmp(dir->d_name, ".") != 0) && (strcmp(dir->d_name, "..")) != 0)
-				{
-					find_file(filepath);
-				}
-			}
-			else if (isADir(filepath) == 0 && isAFile(filepath) == 1 && isASymlink(filepath) == 0)
-			{
-				//printf("%s\n", filepath);
-				gut(filepath);
+				printf("%s\n", new_path);
+				eraser(new_path);
 			}
 		}
-		closedir(path);
+		closedir(dir);
 	}
 }

@@ -1,4 +1,4 @@
-#include "lib/libs.h"
+#include "inc/main.h"
 
 char *f_itoa(int integer)
 {
